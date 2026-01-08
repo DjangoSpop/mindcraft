@@ -1,4 +1,4 @@
-import { Raycaster, Vector3, BoxGeometry, MeshBasicMaterial, Mesh, LineSegments, EdgesGeometry } from 'three';
+import { Raycaster, Vector3, Vector2, BoxGeometry, MeshBasicMaterial, LineSegments, EdgesGeometry } from 'three';
 import { GameState } from './GameState';
 import { Renderer } from '../render/Renderer';
 import { InputManager } from '../engine/InputManager';
@@ -7,17 +7,15 @@ import { BlockType } from '../world/BlockType';
 export class BlockInteraction {
   private gameState: GameState;
   private renderer: Renderer;
-  private inputManager: InputManager;
   private raycaster: Raycaster;
   private highlightMesh: LineSegments | null = null;
 
   targetBlock: { x: number; y: number; z: number } | null = null;
   targetFace: Vector3 | null = null;
 
-  constructor(gameState: GameState, renderer: Renderer, inputManager: InputManager) {
+  constructor(gameState: GameState, renderer: Renderer, _inputManager: InputManager) {
     this.gameState = gameState;
     this.renderer = renderer;
-    this.inputManager = inputManager;
     this.raycaster = new Raycaster();
 
     this.createHighlightMesh();
@@ -59,7 +57,7 @@ export class BlockInteraction {
     const camera = this.renderer.getCurrentCamera();
     if (!camera) return;
 
-    this.raycaster.setFromCamera({ x: 0, y: 0 }, camera);
+    this.raycaster.setFromCamera(new Vector2(0, 0), camera);
     const ray = this.raycaster.ray;
 
     const maxDistance = 5;

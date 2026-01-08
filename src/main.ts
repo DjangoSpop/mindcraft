@@ -2,27 +2,37 @@ import { GameState } from './game/GameState';
 import { GameLoop } from './engine/GameLoop';
 import { Renderer } from './render/Renderer';
 import { InputManager } from './engine/InputManager';
-import { Player } from './game/Player';
-import { BlockInteraction } from './game/BlockInteraction';
-import { UI } from './game/UI';
+import { PlayerCharacter } from './game/PlayerCharacter';
+import { CameraController } from './game/CameraController';
+import { CombatSystem } from './game/CombatSystem';
+import { ShooterUI } from './game/ShooterUI';
 
 class Game {
   private gameState: GameState;
   private renderer: Renderer;
   private inputManager: InputManager;
-  private player: Player;
-  private blockInteraction: BlockInteraction;
-  private ui: UI;
+  private playerCharacter: PlayerCharacter;
+  private cameraController: CameraController;
+  private combatSystem: CombatSystem;
+  private ui: ShooterUI;
   private gameLoop: GameLoop;
 
   constructor() {
     this.gameState = new GameState();
     this.renderer = new Renderer(this.gameState);
     this.inputManager = new InputManager();
-    this.player = new Player(this.gameState, this.inputManager);
-    this.blockInteraction = new BlockInteraction(this.gameState, this.renderer, this.inputManager);
-    this.ui = new UI(this.gameState, this.player, this.blockInteraction);
+    this.playerCharacter = new PlayerCharacter(this.inputManager, this.gameState.world);
+    this.cameraController = new CameraController(this.playerCharacter);
+    this.combatSystem = new CombatSystem(
+      this.playerCharacter,
+      this.inputManager,
+      this.gameState.world,
+      this.renderer.scene
+    );
+    this.ui = new ShooterUI(this.playerCharacter, this.combatSystem);
     this.gameLoop = new GameLoop(this.update.bind(this), this.render.bind(this));
+
+    this.renderer.scene.add(this.playerCharacter.sprite);
   }
 
   start() {
@@ -37,13 +47,15 @@ class Game {
   }
 
   private update(deltaTime: number) {
-    this.player.update(deltaTime);
-    this.blockInteraction.update();
+    this.playerCharacter.update(deltaTime);
+    this.combatSystem.update(deltaTime);
+    this.cameraController.update();
     this.ui.update();
+    this.inputManager.update();
   }
 
   private render() {
-    this.renderer.render(this.player.camera);
+    this.renderer.render(this.cameraController.camera);
   }
 }
 

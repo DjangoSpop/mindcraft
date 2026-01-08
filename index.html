@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MindCraft v0.1</title>
+  <title>MindCraft v0.2 - Shooter Edition</title>
   <style>
     * {
       margin: 0;
@@ -34,8 +34,33 @@
       position: absolute;
       top: 10px;
       left: 10px;
-      font-size: 14px;
-      line-height: 1.6;
+      font-size: 16px;
+      line-height: 1.8;
+      background: rgba(0,0,0,0.6);
+      padding: 15px;
+      border-radius: 8px;
+    }
+    .stat-label {
+      color: #aaa;
+      margin-right: 8px;
+    }
+    .stat-value {
+      color: #fff;
+      font-weight: bold;
+    }
+    .health-bar {
+      width: 200px;
+      height: 20px;
+      background: rgba(255,0,0,0.3);
+      border: 2px solid #fff;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 5px;
+    }
+    .health-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #ff0000, #00ff00);
+      transition: width 0.3s;
     }
     #crosshair {
       position: absolute;
@@ -65,28 +90,25 @@
       height: 100%;
       transform: translateX(-50%);
     }
-    #hotbar {
+    #game-over {
       position: absolute;
-      bottom: 20px;
+      top: 50%;
       left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 4px;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.9);
+      padding: 40px;
+      border-radius: 12px;
+      text-align: center;
+      pointer-events: all;
     }
-    .hotbar-slot {
-      width: 60px;
-      height: 60px;
-      background: rgba(0,0,0,0.5);
-      border: 2px solid #888;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: bold;
+    #game-over h2 {
+      color: #ff0000;
+      font-size: 48px;
+      margin-bottom: 20px;
     }
-    .hotbar-slot.active {
-      border-color: white;
-      background: rgba(255,255,255,0.2);
+    #game-over p {
+      font-size: 24px;
+      margin: 10px 0;
     }
     #instructions {
       position: absolute;
@@ -132,28 +154,27 @@
   <canvas id="game-canvas"></canvas>
   <div id="ui-overlay">
     <div id="debug-overlay">
-      <div>FPS: <span id="fps">0</span></div>
-      <div>Position: <span id="position">0, 0, 0</span></div>
-      <div>Selected: <span id="selected-block">None</span></div>
-      <div>Hotbar: <span id="hotbar-index">1</span></div>
+      <div><span class="stat-label">FPS:</span><span class="stat-value" id="fps">0</span></div>
+      <div><span class="stat-label">Health:</span><span class="stat-value" id="health">100%</span></div>
+      <div><span class="stat-label">Score:</span><span class="stat-value" id="score">0</span></div>
+      <div><span class="stat-label">Enemies:</span><span class="stat-value" id="enemy-count">0</span></div>
     </div>
     <div id="crosshair"></div>
-    <div id="hotbar">
-      <div class="hotbar-slot active" data-index="0">DIRT<br/>1</div>
-      <div class="hotbar-slot" data-index="1">GRASS<br/>2</div>
-      <div class="hotbar-slot" data-index="2">STONE<br/>3</div>
+    <div id="game-over" class="hidden">
+      <h2>GAME OVER</h2>
+      <p>Final Score: <span id="final-score">0</span></p>
+      <p>Reload the page to play again</p>
     </div>
     <div id="instructions">
-      <h2>MindCraft v0.1</h2>
+      <h2>MindCraft Shooter</h2>
       <ul>
-        <li><strong>WASD</strong> - Move</li>
+        <li><strong>WASD</strong> - Move around</li>
         <li><strong>Space</strong> - Jump</li>
-        <li><strong>Mouse</strong> - Look around</li>
-        <li><strong>Left Click</strong> - Break block</li>
-        <li><strong>Right Click</strong> - Place block</li>
-        <li><strong>1/2/3</strong> - Select block type</li>
+        <li><strong>Mouse</strong> - Rotate / Aim</li>
+        <li><strong>Left Click</strong> - Shoot laser</li>
         <li><strong>ESC</strong> - Release mouse</li>
       </ul>
+      <p style="margin-top: 15px; color: #ffaa00;">Shoot the spiders before they get you!</p>
       <button id="start-button">Click to Start</button>
     </div>
   </div>

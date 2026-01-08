@@ -1,64 +1,56 @@
-import { PerspectiveCamera, Vector3 } from 'three';
-import { GameState } from './GameState';
+import { Entity } from './Entity';
 import { InputManager } from '../engine/InputManager';
+import { World } from '../world/World';
+import { Vector3 } from 'three';
 
-export class Player {
-  camera: PerspectiveCamera;
-  private velocity: Vector3 = new Vector3();
-  private gameState: GameState;
+export class PlayerCharacter extends Entity {
   private inputManager: InputManager;
-
+  private world: World;
   private moveSpeed: number = 5.0;
   private jumpForce: number = 8.0;
   private gravity: number = -20.0;
   private isOnGround: boolean = false;
-
   private yaw: number = 0;
-  private pitch: number = 0;
-  private mouseSensitivity: number = 0.002;
 
-  constructor(gameState: GameState, inputManager: InputManager) {
-    this.gameState = gameState;
+  constructor(inputManager: InputManager, world: World) {
+    super('/assets/player.png', 100);
     this.inputManager = inputManager;
+    this.world = world;
+    this.position.set(16, 5, 16);
+    this.sprite.scale.set(1.5, 2, 1);
 
-    this.camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    this.camera.position.set(16, 10, 16);
-
-    window.addEventListener('resize', () => this.onResize());
     document.addEventListener('mousemove', (e) => this.onMouseMove(e));
   }
 
-  private onResize() {
-    this.camera.aspect = window.innerWidth / window.innerHeight;
-    this.camera.updateProjectionMatrix();
-  }
-
-  private onMouseMove(event: MouseEvent) {
+  private onMouseMove(event: MouseEvent): void {
     if (document.pointerLockElement !== document.body) return;
-
-    this.yaw -= event.movementX * this.mouseSensitivity;
-    this.pitch -= event.movementY * this.mouseSensitivity;
-    this.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.pitch));
+    this.yaw -= event.movementX * 0.002;
   }
 
-  update(deltaTime: number) {
-    this.updateRotation();
+  getYaw(): number {
+    return this.yaw;
+  }
+
+  update(deltaTime: number): void {
     this.updateMovement(deltaTime);
     this.updatePhysics(deltaTime);
-    this.inputManager.update();
+    this.updatePosition();
+
+    // Always face camera (billboard effect handled by Sprite)
+    this.sprite.rotation.y = this.yaw;
   }
 
-  private updateRotation() {
-    this.camera.rotation.set(this.pitch, this.yaw, 0, 'YXZ');
-  }
-
-  private updateMovement(_deltaTime: number) {
-    const forward = new Vector3(0, 0, -1).applyQuaternion(this.camera.quaternion);
-    forward.y = 0;
-    forward.normalize();
-
-    const right = new Vector3(1, 0, 0).applyQuaternion(this.camera.quaternion);
-    right.normalize();
+  private updateMovement(_deltaTime: number): void {
+    const forward = new Vector3(
+      Math.sin(this.yaw),
+      0,
+      Math.cos(this.yaw)
+    );
+    const right = new Vector3(
+      Math.cos(this.yaw),
+      0,
+      -Math.sin(this.yaw)
+    );
 
     const moveDir = new Vector3();
 
@@ -82,14 +74,14 @@ export class Player {
     }
   }
 
-  private updatePhysics(deltaTime: number) {
+  private updatePhysics(deltaTime: number): void {
     this.velocity.y += this.gravity * deltaTime;
 
-    const nextPos = this.camera.position.clone().add(this.velocity.clone().multiplyScalar(deltaTime));
+    const nextPos = this.position.clone().add(this.velocity.clone().multiplyScalar(deltaTime));
 
     const playerAABB = {
-      min: { x: nextPos.x - 0.3, y: nextPos.y - 1.5, z: nextPos.z - 0.3 },
-      max: { x: nextPos.x + 0.3, y: nextPos.y + 0.3, z: nextPos.z + 0.3 }
+      min: { x: nextPos.x - 0.4, y: nextPos.y - 1, z: nextPos.z - 0.4 },
+      max: { x: nextPos.x + 0.4, y: nextPos.y + 1, z: nextPos.z + 0.4 }
     };
 
     let collided = false;
@@ -101,18 +93,21 @@ export class Player {
     for (let x = px - checkRadius; x <= px + checkRadius; x++) {
       for (let y = py - checkRadius; y <= py + checkRadius; y++) {
         for (let z = pz - checkRadius; z <= pz + checkRadius; z++) {
-          if (this.gameState.world.getBlock(x, y, z) !== 0) {
+          if (this.world.getBlock(x, y, z) !== 0) {
             const blockAABB = {
               min: { x: x, y: y, z: z },
               max: { x: x + 1, y: y + 1, z: z + 1 }
             };
 
             if (this.aabbIntersects(playerAABB, blockAABB)) {
-              if (this.velocity.y < 0 && this.camera.position.y > y + 1) {
-                nextPos.y = y + 1 + 1.5;
+              if (this.velocity.y < 0 && this.position.y > y + 1) {
+                nextPos.y = y + 1 + 1;
                 this.velocity.y = 0;
                 this.isOnGround = true;
                 collided = true;
+              } else if (this.velocity.y > 0 && this.position.y < y) {
+                nextPos.y = y - 1;
+                this.velocity.y = 0;
               }
             }
           }
@@ -124,11 +119,12 @@ export class Player {
       this.isOnGround = false;
     }
 
-    this.camera.position.copy(nextPos);
+    this.position.copy(nextPos);
 
-    if (this.camera.position.y < -10) {
-      this.camera.position.set(16, 10, 16);
+    if (this.position.y < -10) {
+      this.position.set(16, 10, 16);
       this.velocity.set(0, 0, 0);
+      this.health = this.maxHealth;
     }
   }
 
@@ -136,5 +132,13 @@ export class Player {
     return a.min.x < b.max.x && a.max.x > b.min.x &&
            a.min.y < b.max.y && a.max.y > b.min.y &&
            a.min.z < b.max.z && a.max.z > b.min.z;
+  }
+
+  getShootDirection(): Vector3 {
+    return new Vector3(
+      Math.sin(this.yaw),
+      0,
+      Math.cos(this.yaw)
+    );
   }
 }

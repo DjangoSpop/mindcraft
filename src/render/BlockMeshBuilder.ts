@@ -1,4 +1,4 @@
-import { Scene, InstancedMesh, BoxGeometry, MeshLambertMaterial, Matrix4, Object3D } from 'three';
+import { Scene, InstancedMesh, BoxGeometry, MeshLambertMaterial, Object3D } from 'three';
 import { World } from '../world/World';
 import { BlockType, BLOCK_DEFINITIONS } from '../world/BlockType';
 
